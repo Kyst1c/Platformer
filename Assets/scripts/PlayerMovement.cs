@@ -1,0 +1,124 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerMovement : MonoBehaviour
+{
+    public float moveSpeed = 5f;
+    public float jumpForce = 5f;
+    public int maxHealth = 10;
+    public int currentHealth;
+    public int ammoCount = 10;
+
+    public GameObject bulletPrefab;   // Префаб пули
+    public Transform firePoint;       // Точка, из которой будет производиться стрельба
+    public float bulletSpeed = 10f;   // Скорость пули
+
+    private Rigidbody2D rb;
+    private Animator animator;
+    private bool isJumping = false;
+
+    private float reloadTime = 2f;
+	private bool isReloading = false;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+        currentHealth = maxHealth; // Инициализация здоровья
+    }
+
+    void Update()
+    {
+        if (animator.GetBool("isDead")) return; // Если персонаж мертв, ничего не делаем
+
+        float moveInput = Input.GetAxis("Horizontal");
+        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+
+        // Установка анимаций
+        animator.SetBool("isRunning", moveInput != 0);
+
+        if (Input.GetButtonDown("Jump") && !isJumping)
+        {
+            Jump();
+        }
+
+        if (Input.GetMouseButtonDown(0) && ammoCount > 0)
+        {
+            Shoot();
+        }
+
+        if (ammoCount <= 0 && !isReloading)
+        {
+            StartCoroutine(Reload());
+        }
+    }
+
+    private void Jump()
+    {
+        isJumping = true;
+        rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
+        animator.SetTrigger("Jump");
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isJumping = false; // Позволяем прыгнуть снова
+        }
+        else if (collision.gameObject.CompareTag("Enemy"))
+        {
+            TakeDamage(); // Урон от врага
+        }
+    }
+
+    public void TakeDamage()
+    {
+        currentHealth--;
+        animator.SetTrigger("Hit"); // Запускает анимацию получения урона
+
+        if (currentHealth <= 0)
+        {
+            Die(); // Вызываем метод смерти
+        }
+    }
+
+    private void Die()
+    {
+        animator.SetBool("isDead", true); // Запускает анимацию смерти
+        GetComponent<Collider2D>().enabled = false; // Отключает коллизию
+        rb.gravityScale = 1; // Позволяет персонажу падать
+        rb.velocity = new Vector2(0, -5); // Начальная скорость падения
+    }
+
+    private void Shoot()
+    {
+        if (ammoCount > 0 && !isReloading)
+        {
+            GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+            Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
+            bulletRb.velocity = firePoint.up * bulletSpeed; // Направление и скорость пули
+            ammoCount--;
+		    if (ammoCount <= 0)
+			{
+                StartCoroutine(Reload());
+            }	
+        }
+    }
+
+    System.Collections.IEnumerator Reload()
+	{
+	    isReloading=true;
+	    yield return new WaitForSeconds(reloadTime);
+	    ammoCount = 10;
+	    isReloading=false;
+	}
+
+    public void Heal(int amount)
+	{
+	    currentHealth += amount;
+	    if (currentHealth > maxHealth)
+	        currentHealth=maxHealth;
+	}
+}
