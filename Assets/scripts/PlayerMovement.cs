@@ -12,113 +12,146 @@ public class PlayerMovement : MonoBehaviour
 
     public GameObject bulletPrefab;   // Префаб пули
     public Transform firePoint;       // Точка, из которой будет производиться стрельба
-    public float bulletSpeed = 10f;   // Скорость пули
+    public float bulletSpeed = 10f;   // Скорость пули 
+
+    public AudioClip jumpSound;       
+    private AudioSource audioSource;  
 
     private Rigidbody2D rb;
     private Animator animator;
+    private SpriteRenderer spriteRenderer;
+
     private bool isJumping = false;
 
-    private float reloadTime = 2f;
+	private bool facingRight = true; // Переменная для отслеживания стороны
+
+	private float reloadTime = 2f;
 	private bool isReloading = false;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
         currentHealth = maxHealth; // Инициализация здоровья
+
+        audioSource = GetComponent<AudioSource>();
     }
 
-    void Update()
-    {
-        if (animator.GetBool("isDead")) return; // Если персонаж мертв, ничего не делаем
+	void Update()
+	{
+		if (animator.GetBool("isDead")) return; // Если персонаж мертв, ничего не делаем
 
-        float moveInput = Input.GetAxis("Horizontal");
-        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+		float moveInput = Input.GetAxis("Horizontal");
+		rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
 
-        // Установка анимаций
-        animator.SetBool("isRunning", moveInput != 0);
+		// Флип персонажа в зависимости от направления движения
+		if (moveInput > 0 && !facingRight)
+		{
+			Flip();
+		}
+		else if (moveInput < 0 && facingRight)
+		{
+			Flip();
+		}
 
-        if (Input.GetButtonDown("Jump") && !isJumping)
-        {
-            Jump();
-        }
+		// Установка анимаций
+		animator.SetBool("isRunning", moveInput != 0);
 
-        if (Input.GetMouseButtonDown(0) && ammoCount > 0)
-        {
-            Shoot();
-        }
+		if (Input.GetButtonDown("Jump") && !isJumping)
+		{
+			Jump();
+		}
+
+		if (Input.GetMouseButtonDown(0) && ammoCount > 0)
+		{
+			Shoot();
+		}
 
         if (ammoCount <= 0 && !isReloading)
         {
             StartCoroutine(Reload());
         }
-    }
+	}
 
-    private void Jump()
-    {
-        isJumping = true;
-        rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
-        animator.SetTrigger("Jump");
-    }
+	private void Jump()
+	{
+	    isJumping = true;
+	    rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
+	    animator.SetTrigger("Jump");
+	    
+	    // Воспроизведение звука прыжка
+	    if (audioSource != null && jumpSound != null)
+	    {
+	        audioSource.PlayOneShot(jumpSound);
+	    }
+	}
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            isJumping = false; // Позволяем прыгнуть снова
-        }
-        else if (collision.gameObject.CompareTag("Enemy"))
-        {
-            TakeDamage(); // Урон от врага
-        }
-    }
+	private void OnCollisionEnter2D(Collision2D collision)
+	{
+	    if (collision.gameObject.CompareTag("Ground"))
+	    {
+	        isJumping = false; // Позволяем прыгнуть снова
+	    }
+	    else if (collision.gameObject.CompareTag("Enemy"))
+	    {
+	        TakeDamage(); // Урон от врага
+	    }
+	}
 
-    public void TakeDamage()
-    {
-        currentHealth--;
-        animator.SetTrigger("Hit"); // Запускает анимацию получения урона
+	public void TakeDamage()
+	{
+	    currentHealth--;
+	    animator.SetTrigger("Hit"); // Запускает анимацию получения урона
 
-        if (currentHealth <= 0)
-        {
-            Die(); // Вызываем метод смерти
-        }
-    }
+	    if (currentHealth <= 0)
+	    {
+	        Die(); // Вызываем метод смерти
+	    }
+	}
 
-    private void Die()
-    {
-        animator.SetBool("isDead", true); // Запускает анимацию смерти
-        GetComponent<Collider2D>().enabled = false; // Отключает коллизию
-        rb.gravityScale = 1; // Позволяет персонажу падать
-        rb.velocity = new Vector2(0, -5); // Начальная скорость падения
-    }
 
-    private void Shoot()
-    {
-        if (ammoCount > 0 && !isReloading)
-        {
-            GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-            Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
-            bulletRb.velocity = firePoint.up * bulletSpeed; // Направление и скорость пули
-            ammoCount--;
+	private void Die()
+	{
+	    	animator.SetBool("isDead", true); // Запускает анимацию смерти
+	    	GetComponent<Collider2D>().enabled = false; // Отключает коллизию
+	    	rb.gravityScale = 1; // Позволяет персонажу падать
+	    	rb.velocity = new Vector2(0, -5); // Начальная скорость падения
+	}
+
+	private void Shoot()
+	{
+	    if (ammoCount > 0 && !isReloading)
+	    {
+	        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+	        Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
+	        bulletRb.velocity = firePoint.up * bulletSpeed; // Направление и скорость пули
+	        ammoCount--;
 		    if (ammoCount <= 0)
 			{
                 StartCoroutine(Reload());
             }	
-        }
-    }
+	    }
+	}
 
-    System.Collections.IEnumerator Reload()
+	System.Collections.IEnumerator Reload()
 	{
 	    isReloading=true;
 	    yield return new WaitForSeconds(reloadTime);
-	    ammoCount = 10;
+	    ammoCount=10;
 	    isReloading=false;
 	}
 
-    public void Heal(int amount)
+	public void Heal(int amount)
 	{
-	    currentHealth += amount;
-	    if (currentHealth > maxHealth)
+	    currentHealth+=amount;
+	    if(currentHealth>maxHealth)
 	        currentHealth=maxHealth;
 	}
+
+	private void Flip()
+	{
+	    facingRight = !facingRight;
+	    spriteRenderer.flipX = !spriteRenderer.flipX;
+}
 }
