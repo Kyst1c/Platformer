@@ -28,6 +28,15 @@ public class PlayerMovement : MonoBehaviour
 	private float reloadTime = 2f;
 	private bool isReloading = false;
 
+	public Vector3 offsetRight = new Vector3(1f, 0f, 0f); // Смещение для стрельбы вправо
+	public Vector3 offsetLeft = new Vector3(-1f, 0f, 0f); // Смещение для стрельбы влево
+
+	public Vector3 firePointRotationRight = Vector3.zero;
+	public Vector3 firePointRotationLeft = Vector3.zero;
+	
+	
+
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -153,5 +162,22 @@ public class PlayerMovement : MonoBehaviour
 	{
 	    facingRight = !facingRight;
 	    spriteRenderer.flipX = !spriteRenderer.flipX;
+	 	// Обновляем позицию firePoint при смене стороны
+            UpdateFirePointPosition();
+	}
+
+
+	private void UpdateFirePointPosition()
+	{
+    	if (facingRight)
+    	{
+        	firePoint.localPosition = offsetRight;
+        	firePoint.localRotation = Quaternion.Euler(firePointRotationRight);
+    	}
+    	else
+    	{
+        	firePoint.localPosition = offsetLeft;
+        	firePoint.localRotation = Quaternion.Euler(firePointRotationLeft);
+    	}
 }
 }

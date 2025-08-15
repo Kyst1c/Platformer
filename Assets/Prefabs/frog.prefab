@@ -158,6 +158,10 @@ MonoBehaviour:
   firePoint: {fileID: 1641513295}
   bulletSpeed: 10
   jumpSound: {fileID: 8300000, guid: 30f073976f8182f48b3f0fc3320191af, type: 3}
+  offsetRight: {x: 0.4, y: 0, z: 0}
+  offsetLeft: {x: -0.4, y: 0, z: 0}
+  firePointRotationRight: {x: 0, y: 0, z: -90.616}
+  firePointRotationLeft: {x: 0, y: 0, z: 90}
 --- !u!50 &6454206775506392032
 Rigidbody2D:
   serializedVersion: 4
